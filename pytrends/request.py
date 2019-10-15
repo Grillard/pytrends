@@ -55,6 +55,7 @@ class TrendReq(object):
         self.backoff_factor = backoff_factor
         self.proxy_index = 0
         self.cookies = self.GetGoogleCookie()
+        self.printurl=False
         # intialize widget payloads
         self.token_payload = dict()
         self.interest_over_time_widget = dict()
@@ -116,6 +117,7 @@ class TrendReq(object):
         if len(self.proxies) > 0:
             self.cookies = self.GetGoogleCookie()
             s.proxies.update({'https': self.proxies[self.proxy_index]})
+        if self.printurl: print(url+'?'+'&'.join(['{0}={1}'.format(x,kwargs['params'][x]) for x in kwargs['params']]))
         if method == TrendReq.POST_METHOD:
             response = s.post(url, timeout=self.timeout,
                               cookies=self.cookies, **kwargs)  # DO NOT USE retries or backoff_factor here
@@ -156,9 +158,9 @@ class TrendReq(object):
         }
 
         # build out json for each keyword
-        for kw in self.kw_list:
+        for idx,kw in enumerate(self.kw_list):
             keyword_payload = {'keyword': kw, 'time': timeframe,
-                               'geo': self.geo}
+                               'geo': self.geo if type(geo)==str else geo[idx]}
             self.token_payload['req']['comparisonItem'].append(keyword_payload)
         # requests will mangle this if it is not a string
         self.token_payload['req'] = json.dumps(self.token_payload['req'])
@@ -227,7 +229,7 @@ class TrendReq(object):
         for idx, kw in enumerate(self.kw_list):
             # there is currently a bug with assigning columns that may be
             # parsed as a date in pandas: use explicit insert column method
-            result_df.insert(len(result_df.columns), kw,
+            result_df.insert(len(result_df.columns), kw if type(self.geo)==str else kw+'_'+self.geo[idx],
                              result_df[idx].astype('int'))
             del result_df[idx]
 
